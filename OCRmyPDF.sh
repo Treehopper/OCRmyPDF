@@ -4,7 +4,8 @@
 ##############################################################################
 
 # Import required scripts
-. "`dirname $0`/src/config.sh"
+BASE="$(dirname $(readlink -f $0))"
+. "$BASE/src/config.sh"
 
 # Set variables corresponding to the input parameters
 ARGUMENTS="$@"
@@ -154,7 +155,7 @@ cd "`dirname $0`"
 
 # ensure the right tesseract version is installed
 # older versions are known to produce malformed hocr output and should not be used
-reqtessversion="3.02.02"
+reqtessversion="3.02.01"
 tessversion=`tesseract -v 2>&1 | grep "tesseract" | sed s/[^0-9.]//g`
 ! [ $((`echo $tessversion | sed s/[.]//g`-`echo $reqtessversion | sed s/[.]//g`)) -ge 0 ] > /dev/null \
 	&& echo "Please install tesseract ${reqtessversion} or newer (currently installed version is ${tessversion})" && exit $EXIT_MISSING_DEPENDENCY

@@ -5,8 +5,9 @@
 # Copyright (c) 2013-14: fritz-hh from Github (https://github.com/fritz-hh)
 ##############################################################################
 
-. "./src/config.sh"
-
+BASE="$(dirname $(readlink -f $0))"
+BASE=$(dirname "$BASE")
+. "$BASE/src/config.sh"
 
 # Initialization of variables passed by arguments
 FILE_INPUT_PDF="$1"			# PDF file containing the page to be OCRed

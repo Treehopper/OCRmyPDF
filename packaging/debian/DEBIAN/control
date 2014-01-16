@@ -1,0 +1,8 @@
+Package: OCRmyPDF
+Version: 1.0-0
+Section: base
+Priority: optional
+Architecture: all
+Depends: imagemagick (>= 8:6.6.9.7), poppler-utils (>= 0.18.4), pdftk (>= 1.44-4), unpaper (>= 0.3-1), tesseract-ocr (>= 3.02.01-2), python (>= 2.7.3-0), python-lxml (>= 2.3.2-1), python-reportlab (>= 2.5-1.1), ghostscript (>= 9.05~dfsg-0), openjdk-6-jre-headless (>= 6b27-1.12.6-1), parallel, bash
+Maintainer: Max Hohenegger <ocrmypdf@hohenegger.eu>
+Description: Add a text layer to PDF files.
