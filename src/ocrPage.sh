@@ -38,13 +38,14 @@ FORCE_OCR="${14}"			# Force to OCR, even if the page already contains fonts
 # Output:  A file containing the characteristics of the embedded image. File structure:
 #          DPI=<dpi>
 #          COLOR_SPACE=<colorspace>
+#          DEPTH=<colordepth>
 # Returns:
 #       - 0: if no error occurs
 #       - 1: in case the page already contains fonts (which should be the case for PDF generated from scanned pages) 
 #       - 2: in case the page contains more than one image
 ##################################
 getImgInfo() {
-	local page widthPDF heightPDF curImgInfo nbImg curImg propCurImg widthCurImg heightCurImg colorspaceCurImg dpi
+	local page widthPDF heightPDF curImgInfo nbImg curImg propCurImg widthCurImg heightCurImg colorspaceCurImg depthCurImg dpi
 
 	# page number
 	page="$1"
@@ -66,18 +67,19 @@ getImgInfo() {
 	# unfortunately this image can have another orientation than in the pdf...
 	# so we will have to extract it again later using pdftoppm
 	pdfimages -f $page -l $page -j "$FILE_INPUT_PDF" "$curOrigImg" 1>&2	
-	# count number of extracted images
-	nbImg=`ls -1 "$curOrigImg"* | wc -l`
+	# count number of extracted images 
+	nbImg=$((`ls -1 "$curOrigImg"* 2>/dev/null | wc -l`))
 	if [ $nbImg -ne "1" ]; then
 		[ $VERBOSITY -ge $LOG_WARN ] && echo "Page $page: Expecting exactly 1 image covering the whole page (found $nbImg). Cannot compute dpi value."
 		return 2
 	fi
 	# Get characteristics of the extracted image
-	curImg=`ls -1 "$curOrigImg"*`
-	propCurImg=`identify -format "%w %h %[colorspace]" "$curImg"`
+	curImg=`ls -1 "$curOrigImg"* 2>/dev/null`
+	propCurImg=`identify -format "%w %h %[colorspace] %[depth]" "$curImg"`
 	widthCurImg=`echo "$propCurImg" | cut -f1 -d" "`
 	heightCurImg=`echo "$propCurImg" | cut -f2 -d" "`
 	colorspaceCurImg=`echo "$propCurImg" | cut -f3 -d" "`
+	depthCurImg=`echo "$propCurImg" | cut -f4 -d" "`
 	[ $VERBOSITY -ge $LOG_DEBUG ] && echo "Page $page: Size ${heightCurImg}x${widthCurImg} (in pixel)"	
 
 	# compute the resolution of the image (making the assumption that x & y resolution are equal)
@@ -88,6 +90,7 @@ getImgInfo() {
 	# save the image characteristics
 	echo "DPI=$dpi" > "$curImgInfo"
 	echo "COLOR_SPACE=$colorspaceCurImg" >> "$curImgInfo"
+	echo "DEPTH=$depthCurImg" >> "$curImgInfo"
 	
 	return 0
 }
@@ -110,24 +113,26 @@ curImgInfo="$TMP_FLD/${page}.orig-img-info.txt"			# Detected characteristics of 
 
 
 # auto-detect the characteristics of the embedded image
+depthCurImg="8"			# default color depth
+colorspaceCurImg="sRGB"		# default color space
+dpi=$DEFAULT_DPI		# default resolution
+
 getImgInfo "$page" "$widthPDF" "$heightPDF" "$curImgInfo"
 ret_code="$?"
+
 # in case the page contains text do not OCR, unless the FORCE_OCR flag is set
-if [ "$ret_code" -eq "1" -a "$FORCE_OCR" -eq "0" ]; then
+if ([ "$ret_code" -eq "1" ] && [ "$FORCE_OCR" -eq "0" ]); then
 	echo "Page $page: Exiting... (Use the -f option to force OCRing, even though fonts are available in the input file)" && exit $EXIT_BAD_INPUT_FILE
-elif [ "$ret_code" -eq "1" -a "$FORCE_OCR" -eq "1" ]; then
-	colorspaceCurImg="sRGB"
-	dpi=$DEFAULT_DPI
+elif ([ "$ret_code" -eq "1" ] && [ "$FORCE_OCR" -eq "1" ]); then
 	[ $VERBOSITY -ge $LOG_WARN ] && echo "Page $page: OCRing anyway, assuming a default resolution of $dpi dpi"
 # in case the page contains more than one image, warn the user but go on with default parameters
 elif [ "$ret_code" -eq "2" ]; then
-	colorspaceCurImg="sRGB"
-	dpi=$DEFAULT_DPI
 	[ $VERBOSITY -ge $LOG_WARN ] && echo "Page $page: Continuing anyway, assuming a default resolution of $dpi dpi"
 else
 	# read the image characteristics from the file
 	dpi=`cat "$curImgInfo" | grep "^DPI=" | cut -f2 -d"="`
 	colorspaceCurImg=`cat "$curImgInfo" | grep "^COLOR_SPACE=" | cut -f2 -d"="`
+	depthCurImg=`cat "$curImgInfo" | grep "^DEPTH=" | cut -f2 -d"="`
 fi
 
 # perform oversampling if the resolution is not sufficient to get good OCR results
@@ -138,10 +143,13 @@ elif [ "$dpi" -lt "200" ]; then
 	[ $VERBOSITY -ge $LOG_WARN ] && echo "Page $page: Low image resolution detected ($dpi dpi). If needed, please use the \"-o\" to try to get better OCR results." 
 fi
 	
-# Identify if page image should be saved as ppm (color) or pgm (gray)
-ext="ppm"
-opt=""
-if [ "$colorspaceCurImg" = "Gray" ]; then
+# Identify if page image should be saved as ppm (color), pgm (gray) or pbm (b&w)
+ext="ppm" 	# by default (color image) the extension of the extracted image is ppm
+opt=""		# by default (color image) no option as to be passed to pdftoppm
+if [ "$colorspaceCurImg" = "Gray" ] && [ "$depthCurImg" = "1" ]; then		# if monochrome (b&w)
+	ext="pbm"
+	opt="-mono"
+elif [ "$colorspaceCurImg" = "Gray" ]; then					# if gray
 	ext="pgm"
 	opt="-gray"
 fi
@@ -202,7 +210,7 @@ fi
 # delete temporary files created for the current page
 # to avoid using to much disk space in case of PDF files having many pages
 if [ $KEEP_TMP -eq 0 ]; then
-	rm -f "$curOrigImg"*.*
+	rm -f "$curOrigImg"*
 	rm -f "$curHocr"
 	rm -f "$curImgPixmap"
 	rm -f "$curImgPixmapDeskewed"

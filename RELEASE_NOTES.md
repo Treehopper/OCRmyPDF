@@ -5,6 +5,81 @@ Please always read this file before installing the package
 
 Download software here: https://github.com/fritz-hh/OCRmyPDF/tags
 
+v2.0-stable (2014-01-25):
+=======
+
+New features
+------------
+
+- Check if the language(s) passed using the -l option is supported by tesseract (fixes #60)
+
+Changes
+-------
+
+- Allow OCRmyPDF to be used with tesseract 3.02.01, even though OCR might fail for few PDF file (see issue #28). Rationale: For some linux distribution, no newer version than tesseract 3.02.01 is available
+
+Fixes
+-----
+
+- More robust algorithm for checking the version of the installed tesseract package
+
+Tested with
+-----------
+
+- Operating system: FreeBSD 9.1
+- Dependencies:
+   - parallel 20130222
+   - poppler-utils 0.22.2
+   - ImageMagick 6.8.0-7 2013-03-30
+   - Unpaper 0.3
+   - tesseract 3.02.02
+   - Python 2.7.3
+   - ghoscript (gs): 9.06
+   - java: openjdk version "1.7.0_17"
+
+v2.0-rc2 (2014-01-16):
+=======
+   
+New features
+------------
+
+- None
+
+Changes
+-------
+
+- Size reduction of final PDF file: (fixes #50)
+   - Support for monochrome (Black&White) images (massive size reduction in final PDF: >80%)
+   - Reduced size of grayscale images (by 13% on test PDF file)
+- Preventing fi, fl ligatures does not require anymore to pass an additional config file to tesseract using the -C option (fixes #58)
+- Location of temporary folder according to content of environment variable TMPDIR.
+- Dependency to pdftk removed
+- Check for compatible versions of dependencies: (fixes #51)
+   - parallel and tesseract
+   - python libraries reportlab and lxml
+
+Fixes
+-----
+
+- Improved portability with various shells (dash, bash, tcsh) and OS (FreeBSD, MAC OSX, Linux) (fixes #59)
+- Corrected bug in case the input PDF file contains a space character (fixes #48)
+- Prevent spurious error message in case there is no image in a PDF page
+- Prevent collision of temporary folder names (fixes #57)
+
+Tested with
+-----------
+
+- Operating system: FreeBSD 9.1
+- Dependencies:
+   - parallel 20130222
+   - poppler-utils 0.22.2
+   - ImageMagick 6.8.0-7 2013-03-30
+   - Unpaper 0.3
+   - tesseract 3.02.02
+   - Python 2.7.3
+   - ghoscript (gs): 9.06
+   - java: openjdk version "1.7.0_17"
+
 v2.0-rc1 (2014-01-07):
 ====
 
@@ -23,7 +98,7 @@ Changes
 -------
 
 - In debug mode: The debug page is now placed after the respective "normal" page
-- Reduced disk space usage if -d (deskew) or -c (cleanup) options are not selected
+- Reduced disk space usage in temporary folder if -d (deskew) or -c (cleanup) options are not selected
 - New file src/config.sh containing various configuration parameters
 - Documentation of the tesseract config file "tess-cfg/no_ligature" improved 
 - Improved consistency of the temporary file names
